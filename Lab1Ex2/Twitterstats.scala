@@ -19,7 +19,9 @@ import org.w3c.dom.Document
 // Check example https://github.com/apache/bahir/blob/master/streaming-twitter/examples/src/main/scala/org/apache/spark/examples/streaming/twitter/TwitterPopularTags.scala
 
 object Twitterstats
-{ 
+{
+    var t0: Long = 0
+    val writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("tweets.txt"), "UTF-8"))
 	def getTimeStamp() : String =
 	{
 		return new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime())
@@ -48,7 +50,7 @@ object Twitterstats
 	{
 		return new Locale(code).getDisplayLanguage(Locale.ENGLISH)
 	}
-  
+    
 	def main(args: Array[String])
 	{
 		val file = new File("cred.xml")
@@ -79,9 +81,30 @@ object Twitterstats
 		val stream = TwitterUtils.createStream(ssc, None)
 		
 		// Insert your code here
-		
+		val tweets = stream
+        // Window 120 seconds
+        .window(Seconds(120))
+        .map(status => {
+            val id = status.getId
+            val username = status.getInReplyToScreenName
+            val text = status.getText
+            val retweetedId = if (status.isRetweet) status.getRetweetedStatus.getId else id
+            (id,username,text,retweetedId)
+        })
+        .filter(t => (getLang(t._3) == "en") || (getLang(t._3) == "no"))
+
+        
+        val hashTags = tweets.map(t => t._3.split(" ").filter(_.startsWith("#")))
+        
+        new java.io.File("cpdir").mkdirs
+        ssc.checkpoint("cpdir")
 		ssc.start()
 		ssc.awaitTermination()
 	}
 }
 
+case class TwitterStatsData(countHashTags: Long,
+                            HashTags: String,
+                            username: String,
+                            tweetCount: Long,
+                            text: String)

@@ -27,10 +27,7 @@ object WordFreqCounts
         val wordFreq = sc.textFile(inputFile)
         
         // Cache the data in memory for faster, repeated retrieval.
-        wordFreq.cache
-        
-        
-        
+        wordFreq.cache      
         
         val outRDD = wordFreq
         // Insert stop token (#) for sliding and convert each line to lower case
@@ -57,7 +54,7 @@ object WordFreqCounts
         .collect
         
         //Print to file
-        val writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("outFile.txt")))
+        val writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("freq.txt")))
         for (x <- outRDD) {
             writer.write(x._1 + ":"+ x._2)
             for (y <- x._3){

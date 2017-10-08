@@ -49,7 +49,7 @@ class PhoneNumbers:
 
         if self.partitions is None:
             self.partitions = sc.defaultParallelism
-
+        # read the input file, distribute to node, and process get tuple phone number&uri
         input_data = sc.textFile(self.input_file, minPartitions=self.partitions)
         phone_numbers = input_data.flatMap(self.process_warcs)
 
@@ -80,8 +80,10 @@ class PhoneNumbers:
             stream = self.process_s3_warc(input_uri)
         if stream is None:
             return []
+        # get tuple of phone number & uri
         return self.process_records(stream)
 
+    # process dataset from local directory
     def process_s3_warc(self, uri):
         try:
             no_sign_request = botocore.client.Config(signature_version=botocore.UNSIGNED)
@@ -103,6 +105,7 @@ class PhoneNumbers:
             self.failed_segment.add(1)
             return None
 
+    # process dataset from local directory
     def process_file_warc(self, input_file):
         try:
             return open(input_file[5:], 'rb')
@@ -110,7 +113,8 @@ class PhoneNumbers:
             print("Error ocurred loading file: {}".format(input_file))
             self.failed_segment.add(1)
             return None
-            
+ 
+    # parse phone and map into tuple: (phone, web URL)
     def process_records(self, stream):
         try:
             for rec in ArchiveIterator(stream):
@@ -129,6 +133,7 @@ class PhoneNumbers:
             print("Failed parsing.\nError: {}".format(e))
             self.failed_segment.add(1)
 
+    # find and parse phone number from text
     def find_phone_numbers(self, content):
         content = content.read().decode('utf-8')
         numbers = self.phone_nl_filter.findall(content)
